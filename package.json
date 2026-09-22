@@ -1,0 +1,58 @@
+{
+  "name": "lulu-desktop-pet",
+  "version": "1.2.0",
+  "description": "带可配置互动库、自由散步和陪伴功能的水豚噜噜桌面宠物",
+  "main": "main.js",
+  "author": "xingchenyd",
+  "license": "MIT",
+  "homepage": "https://github.com/xingchenyd/lulu-desktop-pet#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xingchenyd/lulu-desktop-pet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xingchenyd/lulu-desktop-pet/issues"
+  },
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --win portable",
+    "check": "node --check main.js && node --check preload.js && node --check interactions.js && node --check renderer.js && node --check library.js"
+  },
+  "devDependencies": {
+    "bluebird": "^3.7.2",
+    "electron": "38.8.6",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.codex.lulu-desktop-pet",
+    "productName": "水豚噜噜",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "interactions.js",
+      "renderer.js",
+      "library.js",
+      "index.html",
+      "library.html",
+      "styles.css",
+      "library.css",
+      "assets/lulu-idle.png",
+      "assets/lulu-happy.png",
+      "assets/lulu-eating.png",
+      "assets/lulu-sleeping.png",
+      "assets/lulu-grumpy.png",
+      "assets/lulu.ico"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/lulu.ico",
+      "artifactName": "Lulu-Desktop-Pet-${version}.${ext}"
+    }
+  }
+}

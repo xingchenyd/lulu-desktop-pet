@@ -1,0 +1,11 @@
+node_modules/
+dist/
+old-portable-extract/
+hybrid-portable-test/
+.test-user-data*/
+preview-*.png
+preview-*.jpg
+preview-*.jpeg
+*.log
+.DS_Store
+Thumbs.db

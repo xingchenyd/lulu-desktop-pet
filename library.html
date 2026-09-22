@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+    <title>噜噜互动库</title>
+    <link rel="stylesheet" href="library.css" />
+  </head>
+  <body>
+    <main class="library-shell">
+      <header class="library-header">
+        <div>
+          <p class="eyebrow">LULU INTERACTION LIBRARY</p>
+          <h1>今天想和噜噜做什么？</h1>
+          <p class="intro">这里可以自由互动，也可以挑三个放在桌面当快捷按钮。</p>
+        </div>
+        <img src="assets/lulu-happy.png" alt="抱着小玩偶的水豚噜噜" />
+      </header>
+
+      <section class="shortcut-panel" aria-labelledby="shortcutTitle">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">DESKTOP SHORTCUTS</p>
+            <h2 id="shortcutTitle">桌面上的三个快捷互动</h2>
+          </div>
+          <button id="resetShortcuts" class="text-button" type="button">恢复默认</button>
+        </div>
+        <div id="shortcutSlots" class="shortcut-slots"></div>
+        <p id="saveStatus" class="save-status" role="status">修改后会自动保存。</p>
+      </section>
+
+      <section aria-labelledby="libraryTitle">
+        <div class="section-heading library-heading">
+          <div>
+            <p class="section-kicker">ALL INTERACTIONS</p>
+            <h2 id="libraryTitle">全部互动</h2>
+          </div>
+          <span id="interactionCount" class="count-pill"></span>
+        </div>
+        <div id="interactionGrid" class="interaction-grid"></div>
+      </section>
+    </main>
+
+    <script src="interactions.js"></script>
+    <script src="library.js"></script>
+  </body>
+</html>
