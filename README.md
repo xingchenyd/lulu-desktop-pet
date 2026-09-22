@@ -41,7 +41,7 @@
 ### 直接运行
 
 1. 前往 [Releases](https://github.com/xingchenyd/lulu-desktop-pet/releases/latest)。
-2. 下载 `水豚噜噜-1.2.0-兼容版.zip`。
+2. 下载 `Lulu-Desktop-Pet-1.2.0-Compatible.zip`。
 3. 完整解压 ZIP，不要只把 EXE 单独移出文件夹。
 4. 双击文件夹中的 `水豚噜噜.exe`。
 
