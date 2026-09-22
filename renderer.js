@@ -4,8 +4,10 @@ const lulu = document.querySelector("#lulu");
 const speech = document.querySelector("#speech");
 const speechText = document.querySelector("#speechText");
 const effects = document.querySelector("#effects");
+const actionProps = document.querySelector("#actionProps");
 const quickButtons = [...document.querySelectorAll(".quick-action")];
 const interactionMap = new Map(window.LULU_INTERACTIONS.map((item) => [item.id, item]));
+const actionClasses = [...interactionMap.keys()].map((id) => `action-${id}`);
 
 const state = {
   mode: "idle",
@@ -18,6 +20,7 @@ const state = {
   affection: Number(localStorage.getItem("luluAffection") || 0),
   snacks: Number(localStorage.getItem("luluSnacks") || 0),
   clickMoodIndex: 0,
+  activeAction: null,
   quickActions: ["pet", "feed", "sleep"],
 };
 
@@ -74,6 +77,7 @@ const praiseLines = [
 
 let speechTimer = null;
 let modeTimer = null;
+let actionTimer = null;
 let walkTimer = null;
 let walkStartTimer = null;
 let clickTimer = null;
@@ -106,6 +110,53 @@ function setMode(mode, duration = 0) {
   }
 }
 
+function clearActionVisuals({ keepSleeping = false } = {}) {
+  clearTimeout(actionTimer);
+  actionTimer = null;
+  petStage.classList.remove(...actionClasses);
+  actionProps.replaceChildren();
+  state.activeAction = null;
+  delete petStage.dataset.action;
+  if (!keepSleeping && state.sleeping) state.sleeping = false;
+}
+
+function renderActionProps(props = []) {
+  actionProps.replaceChildren();
+  props.forEach(({ className, text = "" }) => {
+    const prop = document.createElement("span");
+    prop.className = `action-prop ${className}`;
+    prop.textContent = text;
+    actionProps.appendChild(prop);
+  });
+}
+
+function beginAction(action, {
+  mode = "happy",
+  duration = 1500,
+  props = [],
+  onFinish,
+} = {}) {
+  clearActionVisuals({ keepSleeping: true });
+  state.activeAction = action;
+  clearTimeout(walkStartTimer);
+  petStage.classList.add(`action-${action}`);
+  petStage.dataset.action = action;
+  renderActionProps(props);
+  setMode(mode);
+
+  if (duration > 0) {
+    actionTimer = setTimeout(() => {
+      petStage.classList.remove(`action-${action}`);
+      actionProps.replaceChildren();
+      state.activeAction = null;
+      delete petStage.dataset.action;
+      setMode(state.sleeping ? "sleeping" : "idle");
+      onFinish?.();
+      scheduleWalk();
+    }, duration);
+  }
+}
+
 function setFacing(direction) {
   state.direction = direction;
   petStage.classList.toggle("facing-left", direction < 0);
@@ -128,9 +179,12 @@ function burst(symbols, count = 6) {
 }
 
 function wakeUp(announce = true) {
+  clearActionVisuals({ keepSleeping: true });
   state.sleeping = false;
+  delete petStage.dataset.action;
   setMode("idle");
   if (announce) speak("唔……噜噜醒啦，继续陪你。", 3200);
+  scheduleWalk();
 }
 
 function petLulu() {
@@ -139,7 +193,15 @@ function petLulu() {
   state.affection += 1;
   localStorage.setItem("luluAffection", String(state.affection));
   stopWalking();
-  setMode("happy", 900);
+  beginAction("pet", {
+    mode: "happy",
+    duration: 1650,
+    props: [
+      { className: "pat-hand", text: "✋" },
+      { className: "pet-heart pet-heart-one", text: "♥" },
+      { className: "pet-heart pet-heart-two", text: "♡" },
+    ],
+  });
   burst(["♥", "♡", "✦"], 7);
   const bonus = state.affection % 8 === 0 ? " 我们已经越来越熟啦！" : "";
   speak(`${pick(petLines)}${bonus}`);
@@ -152,6 +214,8 @@ function cycleClickMood() {
     wakeUp();
     return;
   }
+
+  clearActionVisuals({ keepSleeping: true });
 
   const moods = [
     { mode: "happy", line: "闭上眼，和小玩偶贴贴～", symbols: ["♥", "✦"] },
@@ -172,7 +236,15 @@ function feedLulu() {
   state.snacks += 1;
   localStorage.setItem("luluSnacks", String(state.snacks));
   stopWalking();
-  setMode("eating", 1600);
+  beginAction("feed", {
+    mode: "eating",
+    duration: 1900,
+    props: [
+      { className: "crunch crunch-one", text: "✦" },
+      { className: "crunch crunch-two", text: "·" },
+      { className: "crunch crunch-three", text: "♪" },
+    ],
+  });
   burst(["🥕", "✦"], 5);
   const bonus = state.snacks % 5 === 0 ? ` 这是今天的第 ${state.snacks} 根！` : "";
   speak(`${pick(foodLines)}${bonus}`, 4200);
@@ -184,78 +256,125 @@ function toggleSleep() {
   stopWalking();
   state.sleeping = !state.sleeping;
   if (state.sleeping) {
-    setMode("sleeping");
+    beginAction("sleep", {
+      mode: "sleeping",
+      duration: 0,
+      props: [
+        { className: "dream-moon", text: "☾" },
+        { className: "dream-star dream-star-one", text: "✦" },
+        { className: "dream-star dream-star-two", text: "·" },
+      ],
+    });
     speak("噜噜先眯一小会儿……晚安。", 3000);
+    playTone(360, 0.12);
   } else {
     wakeUp();
   }
 }
 
-function performDelight({ mode = "happy", duration = 1300, line, symbols, tone = 520 }) {
+function prepareDelight() {
   if (state.sleeping) wakeUp(false);
   state.affection += 1;
   localStorage.setItem("luluAffection", String(state.affection));
   stopWalking();
-  setMode(mode, duration);
-  burst(symbols, 6);
-  speak(line, 3600);
-  playTone(tone, 0.08);
 }
 
 function hugLulu() {
-  performDelight({
-    duration: 1600,
-    line: "抱紧一点～噜噜把安心也分给你。",
-    symbols: ["♥", "♡", "✦"],
-    tone: 470,
+  prepareDelight();
+  beginAction("hug", {
+    mode: "happy",
+    duration: 2100,
+    props: [
+      { className: "hug-ring", text: "" },
+      { className: "hug-heart", text: "♡" },
+    ],
   });
+  burst(["♥", "♡", "✦"], 8);
+  speak("抱紧一点～噜噜和小玩偶把安心都分给你。", 3900);
+  playTone(470, 0.12);
 }
 
 function highFiveLulu() {
-  performDelight({
-    duration: 1050,
-    line: "啪！击掌成功，刚刚的你很厉害！",
-    symbols: ["✋", "✦", "★"],
-    tone: 610,
+  prepareDelight();
+  beginAction("highfive", {
+    mode: "idle",
+    duration: 1700,
+    props: [
+      { className: "highfive-hand", text: "✋" },
+      { className: "highfive-flash", text: "★" },
+    ],
   });
+  setTimeout(() => burst(["✦", "★"], 8), 430);
+  speak("啪！击掌成功，刚刚的你真的很厉害！", 3600);
+  playTone(620, 0.07);
+  setTimeout(() => playTone(790, 0.09), 420);
 }
 
 function playWithLulu() {
-  performDelight({
-    mode: "walk",
-    duration: 1700,
-    line: "小球滚过来啦！噜噜接住——",
-    symbols: ["⚽", "·", "✦"],
-    tone: 565,
+  prepareDelight();
+  beginAction("play", {
+    mode: "idle",
+    duration: 2400,
+    props: [
+      { className: "play-ball", text: "" },
+      { className: "play-speed play-speed-one", text: "·" },
+      { className: "play-speed play-speed-two", text: "·" },
+    ],
   });
+  burst(["●", "✦"], 4);
+  speak("小球滚过来啦！噜噜追到它了——", 3800);
+  playTone(565, 0.08);
+  setTimeout(() => playTone(665, 0.08), 760);
 }
 
 function praiseLulu() {
-  performDelight({
-    duration: 1450,
-    line: pick(praiseLines),
-    symbols: ["✨", "★", "♡"],
-    tone: 585,
+  prepareDelight();
+  beginAction("praise", {
+    mode: "happy",
+    duration: 2100,
+    props: [
+      { className: "praise-crown", text: "♛" },
+      { className: "praise-star praise-star-one", text: "✦" },
+      { className: "praise-star praise-star-two", text: "★" },
+    ],
   });
+  burst(["✦", "★", "♡"], 7);
+  speak(pick(praiseLines), 4100);
+  playTone(585, 0.1);
+  setTimeout(() => playTone(700, 0.1), 150);
 }
 
 function chatWithLulu() {
-  performDelight({
-    duration: 1550,
-    line: pick(whisperLines),
-    symbols: ["♡", "·", "✦"],
-    tone: 425,
+  prepareDelight();
+  beginAction("chat", {
+    mode: "idle",
+    duration: 2300,
+    props: [
+      { className: "whisper-bubble", text: "···" },
+      { className: "whisper-heart", text: "♡" },
+    ],
   });
+  burst(["♡", "·"], 4);
+  speak(pick(whisperLines), 4600);
+  playTone(425, 0.13);
 }
 
 function stretchWithLulu() {
-  performDelight({
-    mode: "walk",
-    duration: 1550,
-    line: "一起伸——个懒腰，再喝一小口水吧。",
-    symbols: ["🌿", "✦", "·"],
-    tone: 500,
+  prepareDelight();
+  beginAction("stretch", {
+    mode: "idle",
+    duration: 2300,
+    props: [
+      { className: "stretch-sun", text: "☀" },
+      { className: "stretch-leaf stretch-leaf-one", text: "❯" },
+      { className: "stretch-leaf stretch-leaf-two", text: "❮" },
+      { className: "stretch-drop", text: "●" },
+    ],
   });
+  burst(["🌿", "✦", "·"], 6);
+  speak("一起伸——个懒腰，肩膀放松，再喝一小口水吧。", 4300);
+  playTone(500, 0.12);
+  setTimeout(() => playTone(555, 0.09), 500);
 }
 
 function playTone(frequency, duration) {
@@ -294,7 +413,7 @@ async function walkStep() {
 }
 
 function startWalking() {
-  if (!state.strolling || state.sleeping || state.dragging || state.walking) return;
+  if (!state.strolling || state.sleeping || state.dragging || state.walking || state.activeAction) return;
   state.walking = true;
   setFacing(Math.random() > 0.5 ? 1 : -1);
   setMode("walk");

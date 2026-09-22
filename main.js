@@ -415,7 +415,9 @@ function createWindow() {
         if (captureAction) {
           const rendererState = await petWindow.webContents.executeJavaScript(`({
             mode: state.mode,
+            activeAction: state.activeAction,
             src: document.querySelector("#lulu").getAttribute("src"),
+            actionProps: [...document.querySelectorAll(".action-prop")].map((prop) => prop.className),
             parents: {
               buttons: document.querySelector(".quick-actions").parentElement.id,
               character: document.querySelector("#lulu").parentElement.id,
